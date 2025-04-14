@@ -1,28 +1,51 @@
 <script lang="ts">
-	import { PUBLIC_PROJECT_NAME } from '$env/static/public';
-
-	import { page } from '$app/stores';
-	import { buttonVariants } from './ui/button';
-	import LogoutButton from './login/LogoutButton.svelte';
-	import { Ship } from 'lucide-svelte';
+	import MdIcon from './MdIcon.svelte';
 </script>
 
-<header
-	class="container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur"
->
-	<div class="flex h-14 max-w-screen-2xl items-center">
-		<div class="mr-4 flex justify-between w-full">
-			<a href="/" class="mr-6 flex items-center space-x-2">
-				<Ship class="h-8 w-8" />
-				<span class="font-bold inline-block">{PUBLIC_PROJECT_NAME}</span></a
-			>
-			<div>
-				{#if $page.data.user}
-					<LogoutButton />
-				{:else}
-					<a href="/login" class={buttonVariants({ variant: 'ghost' })}>Sign in</a>
-				{/if}
-			</div>
-		</div>
-	</div>
+<header>
+	<svg
+		aria-label="Tough Leaf logo"
+		class="logo s-W3yolpVXlKCE"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 230 30"
+		width="230px"
+		height="30px"
+		><g id="logo" transform="translate(-177.53 -28)" fill-rule="evenodd" class="s-W3yolpVXlKCE"
+			><path
+				id="logo-text"
+				d="M296.7 101.789h3.522V85.145h6.306v-3.238h-16.133v3.238h6.305Zm21.928.34a10.188 10.188 0 0 0 10.425-10.282v-.057a10.4 10.4 0 0 0-20.792.057v.053a10.093 10.093 0 0 0 10.368 10.225m.057-3.238a6.787 6.787 0 0 1-6.76-7.044v-.053a6.717 6.717 0 0 1 6.7-7.015 6.812 6.812 0 0 1 6.761 7.072v.053a6.694 6.694 0 0 1-6.7 6.987m22.751 3.209c5.2 0 8.55-2.981 8.55-8.919v-11.27h-3.494v11.446c0 3.664-1.9 5.51-5 5.51-3.124 0-5.027-1.96-5.027-5.652v-11.3h-3.494v11.442c0 5.767 3.3 8.748 8.465 8.748m22.78.029a12.675 12.675 0 0 0 8.294-3.1v-8.347h-8.463v3.039h5.084v3.721a8.119 8.119 0 0 1-4.8 1.506c-4.061 0-6.76-3.01-6.76-7.1v-.059c0-3.805 2.784-7.015 6.447-7.015a7.792 7.792 0 0 1 5.567 2.13l2.215-2.641a10.734 10.734 0 0 0-7.641-2.7 10.13 10.13 0 0 0-10.254 10.282v.054a9.866 9.866 0 0 0 10.311 10.225m12.839-.34h3.493V93.41h9.487v8.379h3.493V81.907h-3.493v8.265h-9.487v-8.265h-3.493Zm30.109 0h13.944v-3.177h-10.453v-16.7h-3.493Zm17.582 0h14.883v-3.12h-11.39v-5.34h9.97V90.2h-13.465Zm3.493-16.758h11.248v-3.12h-14.743v3.124Zm13.832 16.758h3.578c3.07-7.2 3.348-7.953 6.732-15.849 3.62 8.377 3.3 7.688 6.732 15.849h3.693l-8.749-20.025h-3.238Zm24.144 0h3.493v-8.1h10.026v-3.173h-10.027v-5.424h11.3v-3.181h-14.8Z"
+				transform="translate(-73.658 -49.376)"
+				fill="#101929"
+				class="s-W3yolpVXlKCE"
+			></path><path
+				id="logo-leaf"
+				d="M0 16.844v11.6l2.984-2.985V15.087a12.1 12.1 0 0 1 .071-1.3Zm13.859-8.307v-3.02a9.577 9.577 0 0 0-2.986.9v11.148l2.986-2.986V8.537Zm1.319 16.2h11.478a15.167 15.167 0 0 0 1.949-2.983H17.844l-.963.962-1.7 1.7-.319.318h.318Zm6.571-10.874V8.422h-5.437V5.438h8.421v8.422Zm5.437-2.985v2.985h2.984V0H16.31v2.984h10.876v7.889Zm-7.89 0H16.31v2.985h2.984Zm-6.889 16.308h11.658a14.976 14.976 0 0 1-8.979 2.987H1.735l2.758-2.758.227-.227 2.452-2.452 5.436-5.436 1.381-1.381 1.6-1.6h4.222L16.83 19.3l-1.6 1.6-.051.05-.03.03-6.207 6.206ZM29.566 19.3a14.818 14.818 0 0 0 .553-2.985h-6.976l.069.07L20.3 19.3h9.268ZM5.437 14.313V7.806q-.176.233-.342.475L.11 13.265A15.15 15.15 0 0 1 13.859.053v3A12.019 12.019 0 0 0 8.421 5v15.018L5.437 23v-7.913c0-.261.011-.518.031-.774Z"
+				transform="translate(177.53 28)"
+				fill="#2491eb"
+				class="s-W3yolpVXlKCE"
+			></path></g
+		></svg
+	>
+
+	<button> Joe <MdIcon>arrow_drop_down</MdIcon></button>
 </header>
+
+<style>
+	header {
+		max-width: 1440px;
+		margin: auto;
+		display: flex;
+		justify-content: space-between;
+		margin-block: 24px;
+		align-items: center;
+	}
+	button {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		font-weight: 500;
+		padding: 12px 24px;
+		background-color: #f4f5f6;
+		border-radius: 0.4rem;
+	}
+</style>

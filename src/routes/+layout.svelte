@@ -10,6 +10,7 @@
 		PUBLIC_DEFAULT_TITLE,
 		PUBLIC_PROJECT_NAME
 	} from '$env/static/public';
+	import Header from '$lib/components/Header.svelte';
 
 	let { children } = $props();
 
@@ -67,7 +68,18 @@
 	<meta property="og:description" content={meta.ogDescription} />
 	<meta property="og:image" content={meta.ogImage} />
 	<meta property="og:url" content={meta.ogUrl} />
-
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+	/>
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap"
+	/>
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+	/>
 	<!--
 	  Twitter
 	  - Twitter uses OG's url, title, description, & image tags.
@@ -75,5 +87,6 @@
 	  -->
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
+<Header />
 
 {@render children()}
