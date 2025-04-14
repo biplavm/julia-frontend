@@ -51,6 +51,42 @@
 			text: {
 				subcontractors: [
 					{
+						id: 'SC001',
+						phone: '(212) 555-1234',
+						email: 'info@metroconstruction.com',
+						contact: 'John Chui',
+						company_name: 'Metro Construction Solutions',
+						location: {
+							borough: 'Manhattan',
+							address: '123 Broadway, New York, NY 10007'
+						},
+						capabilities: ['General Construction', 'Concrete Work', 'Steel Fabrication'],
+						certifications: ['MBE', 'SBE'],
+						yearsInBusiness: 15,
+						employeeCount: 150,
+						projectCapacity: '$5M-$20M'
+					},
+					{
+						id: 'SC002',
+						phone: '(718) 555-5678',
+						email: 'info@brookylenetwork.com',
+						contact: 'Jane Smith',
+						company_name: 'Brooklyn Electrical Experts',
+						location: {
+							borough: 'Brooklyn',
+							address: '456 Atlantic Ave, Brooklyn, NY 11217'
+						},
+						capabilities: [
+							'Electrical Systems',
+							'Smart Building Integration',
+							'Solar Installation'
+						],
+						certifications: ['WBE', 'LEED'],
+						yearsInBusiness: 8,
+						employeeCount: 75,
+						projectCapacity: '$1M-$10M'
+					},
+					{
 						id: 'SC003',
 						phone: '(718) 555-5678',
 						email: 'info@queensplumbing.com',
@@ -108,21 +144,6 @@
 		}
 	];
 
-	function sendMessage() {
-		if (!message.trim()) return;
-
-		// Push user message
-		chatLog = [...chatLog, { sender: 'user', text: message }];
-
-		// Simulate bot response
-		const botResponse = getBotResponse(message);
-
-		chatLog = [...chatLog, { sender: 'Julia', text: Text }];
-
-		// Clear input
-		message = '';
-	}
-
 	function getBotResponse(input: string) {
 		// Replace this with your real logic or backend call
 		return `You said: "${input}"`;
@@ -132,6 +153,27 @@
 		if (e.key === 'Enter') {
 			sendMessage();
 		}
+	}
+	let showMessageIcon = false;
+
+	function sendMessage() {
+		if (!message.trim()) return;
+
+		// Push user message
+		chatLog = [...chatLog, { sender: 'user', text: message }];
+
+		// Simulate bot response
+		const botResponse = getBotResponse(message);
+
+		// Show message icon
+		showMessageIcon = true;
+		setTimeout(() => {
+			chatLog = [...chatLog, { sender: 'Julia', text: botResponse }];
+			showMessageIcon = false;
+		}, 2000);
+
+		// Clear input
+		message = '';
 	}
 </script>
 
@@ -286,50 +328,61 @@
 			class:small={chatbotSize === 'small'}
 			class:large={chatbotSize === 'large'}
 		>
-			<div class="chatbot-info">
-				<MdIcon size="80" compact color="#2491EB">smart_toy</MdIcon>
-				<h2>Welcome to Julia</h2>
-				<p>
-					I'm your AI assistant, ready to help you find and connect with the best local businesses.
-					What can I help you with today?
-				</p>
-			</div>
-			<div class="chatlog">
-				{#each chatLog as msg}
-					{#if msg.sender.toLowerCase() === 'julia'}
-						<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-							<div class="sender">
-								{msg.sender}
-							</div>
-							<p>Here are 4 certified electrical firms in Houston</p>
-							<div class="firm-list">
-								{#each msg.text.subcontractors as sub}
-									<div class="firm">
-										<input type="checkbox" />
-										<h3>{sub.company_name}</h3>
-										<div class="actions">
-											<button>
-												<MdIcon>visibility</MdIcon>
-											</button>
-											<button><MdIcon>mail</MdIcon></button>
-											<button><MdIcon>call</MdIcon></button>
+			<div class="chat-container">
+				<div class="chatbot-info">
+					<MdIcon size="80" compact color="#2491EB">smart_toy</MdIcon>
+					<h2>Welcome to Julia</h2>
+					<p>
+						I'm your AI assistant, ready to help you find and connect with the best local
+						businesses. What can I help you with today?
+					</p>
+				</div>
+
+				<div class="chatlog">
+					{#each chatLog as msg}
+						{#if msg.sender.toLowerCase() === 'julia'}
+							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+								<div class="sender">
+									{msg.sender}
+								</div>
+								<p>Here are 4 certified electrical firms in Houston</p>
+								<div class="firm-list">
+									{#each msg.text.subcontractors as sub}
+										<div class="firm">
+											<input type="checkbox" />
+											<h3>{sub.company_name}</h3>
+											<div class="actions">
+												<button>
+													<MdIcon>visibility</MdIcon>
+												</button>
+												<button><MdIcon>mail</MdIcon></button>
+												<button><MdIcon>call</MdIcon></button>
+											</div>
 										</div>
-									</div>
-								{/each}
+									{/each}
+								</div>
 							</div>
-						</div>
-					{:else}
-						<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-							<div class="sender">
-								{msg.sender}
+						{:else}
+							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+								<div class="sender">
+									{msg.sender}
+								</div>
+								<div class="text">
+									{msg.text}
+								</div>
 							</div>
-							<div class="text">
-								{msg.text}
-							</div>
+						{/if}
+					{/each}
+					{#if showMessageIcon}
+						<div class="typing">
+							<span></span>
+							<span></span>
+							<span></span>
 						</div>
 					{/if}
-				{/each}
+				</div>
 			</div>
+
 			<div class="input">
 				<input
 					type="text"
@@ -455,6 +508,18 @@
 		justify-content: center;
 		align-items: center;
 
+		.chat-container {
+			position: relative;
+			overflow-y: scroll;
+			max-height: 600px;
+			height: 100%;
+			margin-bottom: 20px;
+			width: 100%;
+		}
+
+		.chat-container::-webkit-scrollbar {
+			display: none;
+		}
 		.large {
 			background-color: white;
 			min-width: 70%;
@@ -487,6 +552,7 @@
 				flex-direction: column;
 				gap: 0.8rem;
 				margin-bottom: 1.2rem;
+				margin: auto;
 			}
 
 			h2 {
@@ -637,5 +703,52 @@
 		background-color: hsl(207, 83%, 53%);
 		color: white;
 		border-radius: 50%;
+	}
+
+	.message-icon {
+		color: hsl(120, 70%, 40%);
+		background-color: white;
+		border-radius: 50%;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		padding: 8px;
+	}
+
+	.typing {
+		position: relative;
+
+		span {
+			content: '';
+			animation: blink 1.5s infinite;
+			animation-fill-mode: both;
+			height: 10px;
+			width: 10px;
+			background: #3b5998;
+			position: absolute;
+			left: 0;
+			top: 0;
+			border-radius: 50%;
+
+			&:nth-child(2) {
+				animation-delay: 0.2s;
+				margin-left: 10px * 1.5;
+			}
+
+			&:nth-child(3) {
+				animation-delay: 0.4s;
+				margin-left: 10px * 3;
+			}
+		}
+	}
+
+	@keyframes blink {
+		0% {
+			opacity: 0.1;
+		}
+		20% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0.1;
+		}
 	}
 </style>
