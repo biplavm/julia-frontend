@@ -19,13 +19,82 @@
 		employeeCount: number;
 		projectCapacity: string;
 	}
+
+	const bidPackages = [
+		{ bid_package: 'Electrical Wiring Bid Package', project: 'Tech Campus Alpha' },
+		{ bid_package: 'Concrete Foundation Bid Package', project: 'Highway Expansion Phase 2' },
+		{ bid_package: 'Steel Structure Bid Package', project: 'Corporate HQ Tower' },
+		{ bid_package: 'Roofing and Waterproofing', project: 'City Library Renovation' },
+		{ bid_package: 'Interior Finishes Package', project: 'Downtown Retail Complex' },
+		{ bid_package: 'Plumbing and Fixtures', project: 'Midtown Medical Center' },
+		{ bid_package: 'HVAC Systems Bid Package', project: 'Green Energy Research Lab' },
+		{ bid_package: 'Glass & Glazing', project: 'University Engineering Building' },
+		{ bid_package: 'Sitework and Landscaping', project: 'Riverside Apartments' },
+		{ bid_package: 'Elevator Installation Package', project: 'Central Business Complex' }
+	];
 </script>
 
 <script lang="ts">
 	import MdIcon from '$lib/components/MdIcon.svelte';
+	import { onMount } from 'svelte';
+
+	export let data;
+
+	$: searchQuery = data.searchQuery;
+
+	let isChatbotOpen = true;
+	let chatbotSize: 'small' | 'large' = 'small';
+	let selectedSubcontractors: Subcontractor[] = [];
+	let message = '';
+	let selectedEmailAddresses: string[] = [];
+	let chatHistory = [];
+	let isCompanyModalOpen = true;
+	let selectedCompany: Subcontractor | null = null;
+	let isEmailModalOpen = false;
+	let isCallModalOpen = false;
+	let selectedCallNumbers: Record<string, string>[] = [];
+	let chatLoading = false;
+	let showBidPackagePrompt = false;
+	let isBidPackageModalOpen = true;
+	let bidPackageStep: 'add' | 'find' = 'find';
+	let bidPackageSearch = '';
+	let selectedBidPackage: Record<string, string> | null = null;
+	let senderEmail = '';
+	let emailSubject = '';
+	let emailBody = '';
+
+	async function sendEmail() {
+		try {
+			const response = await fetch('http://24.144.88.94/send-email', {
+				method: 'POST',
+				headers: {
+					accept: 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					to: 'danish@toughleaf.com',
+					subject: emailSubject,
+					body: emailBody
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(`Error: ${response.status}`);
+			}
+
+			console.log(response);
+
+			alert('Email sent successfully!');
+			isEmailModalOpen = false;
+		} catch (error) {
+			console.error('Error sending email:', error);
+			alert('Failed to send email. Please try again.');
+		}
+	}
 
 	async function fetchSubcontractors(query: string): Promise<Text | null> {
 		try {
+			chatLoading = true;
 			const response = await fetch('http://24.144.88.94/find-subcontractors', {
 				method: 'POST',
 				headers: {
@@ -43,24 +112,13 @@
 			}
 
 			const data: Text = await response.json();
+
 			return data; // Return the response data
 		} catch (error) {
 			console.error('Error fetching subcontractors:', error);
 			return null; // Return null in case of an error
 		}
 	}
-
-	let isChatbotOpen = true;
-	let chatbotSize: 'small' | 'large' = 'small';
-	let selectedSubcontractors: Subcontractor[] = [];
-	let message = '';
-	let selectedEmailAddresses: string[] = [];
-	let chatHistory = [];
-	let isCompanyModalOpen = true;
-	let selectedCompany: Subcontractor | null = null;
-	let isEmailModalOpen = false;
-	let isCallModalOpen = false;
-	let selectedCallNumbers: Record<string, string>[] = [];
 
 	function toggleChatbot() {
 		isChatbotOpen = !isChatbotOpen;
@@ -71,6 +129,12 @@
 	}
 
 	function selectSubcontractor(sub: Subcontractor) {
+		if (selectedSubcontractors.length > 0) {
+			showBidPackagePrompt = true;
+		} else {
+			showBidPackagePrompt = false;
+		}
+
 		if (selectedSubcontractors.includes(sub)) {
 			selectedSubcontractors = selectedSubcontractors.filter((s) => s !== sub);
 		} else {
@@ -91,11 +155,10 @@
 		// Push user message
 		chatHistory = [...chatHistory, { sender: 'user', text: message }];
 
-		message = '';
 		const botResponse = await fetchSubcontractors(message);
+		message = '';
 
 		// Show message icon
-		showMessageIcon = true;
 		// Clear input
 		setTimeout(() => {
 			if (botResponse) {
@@ -107,8 +170,15 @@
 				];
 			}
 			showMessageIcon = false;
+			chatLoading = false;
 		}, 2000);
 	};
+
+	onMount(() => {
+		message = searchQuery;
+
+		sendMessage();
+	});
 </script>
 
 <div class="main">
@@ -255,7 +325,7 @@
 {#if !isChatbotOpen}
 	<div class="chatbubble">
 		<button on:click={toggleChatbot}>
-			<MdIcon size="32">robot_2</MdIcon>
+			<img src="./images/julia.png" alt="Julia" width="100" height="100" />
 		</button>
 	</div>
 {/if}
@@ -267,10 +337,10 @@
 			class:small={chatbotSize === 'small'}
 			class:large={chatbotSize === 'large'}
 		>
-			<div class="chat-container">
+			<div class="chat-container" id="scroller">
 				<div class="chatbot-info">
-					<MdIcon size="80" compact color="#2491EB">smart_toy</MdIcon>
-					<h2>Welcome to Julia</h2>
+					<img src="./images/julia.png" alt="Julia" width="150" height="150" />
+					<h2>Hello I'm Julia!</h2>
 					<p>
 						I'm your AI assistant, ready to help you find and connect with the best local
 						businesses. What can I help you with today?
@@ -280,107 +350,125 @@
 				<div class="chatlog">
 					{#each chatHistory as msg}
 						{#if msg.sender.toLowerCase() === 'julia'}
-							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-								<div class="sender">
-									{msg.sender}
+							<div class="message-container bot">
+								<div class="avatar">
+									<img src="./images/julia.png" alt="Julia" height="35" width="35" />
 								</div>
-								{#if msg.text.matches.length === 0}
-									<p>Sorry, I couldn't find any matches for your request.</p>
-								{:else}
-									{@const subcontractors = msg.text.matches}
-									<p>Here are {msg.text.matches.length} certified electrical firms in Houston</p>
-									<div class="firm-list">
-										{#each subcontractors as sub}
-											<div class="firm">
-												<input
-													type="checkbox"
-													checked={selectedSubcontractors.includes(sub)}
-													on:click={() => selectSubcontractor(sub)}
-												/>
-												<h3>{sub.company_name}</h3>
-												<div class="actions">
-													<button
-														on:click={() => {
-															selectedCompany = sub;
-															isCompanyModalOpen = true;
-														}}
-													>
-														<MdIcon>visibility</MdIcon>
-													</button>
-													<button
-														on:click={() => {
-															selectedEmailAddresses = [sub.email];
-															isEmailModalOpen = true;
-														}}><MdIcon>mail</MdIcon></button
-													>
-													<button
-														on:click={() => {
-															selectedCallNumbers = [
-																{ company_name: sub.company_name, number: sub.number }
-															];
-															isCallModalOpen = true;
-														}}><MdIcon>call</MdIcon></button
-													>
-												</div>
-											</div>
-										{/each}
-										<div class="call-mail-action-buttons">
-											<button
-												on:click={() => {
-													isEmailModalOpen = true;
-													selectedEmailAddresses = selectedSubcontractors.map((sub) => sub.email);
-												}}
-												class="email-selected"
-												disabled={!selectedSubcontractors.length}
-												><MdIcon>email</MdIcon>Email Selected</button
-											>
-											<button
-												on:click={() => {
-													isCallModalOpen = true;
-													selectedCallNumbers = selectedSubcontractors.map((sub) => ({
-														company_name: sub.company_name,
-														number: sub.phone
-													}));
-												}}
-												class="email-selected"
-												disabled={!selectedSubcontractors.length}
-												><MdIcon>email</MdIcon>Call Selected</button
-											>
-										</div>
+								<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+									<div class="sender">
+										{msg.sender}
 									</div>
-								{/if}
+									{#if !msg.text.matches}
+										<p>{msg.text.message}</p>
+									{:else if msg.text.matches.length === 0}
+										<p>Sorry, I couldn't find any matches for your request.</p>
+									{:else}
+										{@const subcontractors = msg.text.matches}
+										<p>
+											Here are {msg.text.matches.length} certified firms.
+										</p>
+										<div class="firm-list">
+											{#each subcontractors as sub}
+												<div class="firm">
+													<input
+														type="checkbox"
+														checked={selectedSubcontractors.includes(sub)}
+														on:click={() => selectSubcontractor(sub)}
+													/>
+													<h3>{sub.company_name}</h3>
+													<div class="actions">
+														<button
+															on:click={() => {
+																selectedCompany = sub;
+																isCompanyModalOpen = true;
+															}}
+														>
+															<MdIcon>visibility</MdIcon>
+														</button>
+														<button
+															on:click={() => {
+																selectedEmailAddresses = [sub.email];
+																isEmailModalOpen = true;
+															}}><MdIcon>mail</MdIcon></button
+														>
+														<button
+															on:click={() => {
+																selectedCallNumbers = [
+																	{ company_name: sub.company_name, number: sub.number }
+																];
+																isCallModalOpen = true;
+															}}><MdIcon>call</MdIcon></button
+														>
+													</div>
+												</div>
+											{/each}
+											<div class="call-mail-action-buttons">
+												<button
+													on:click={() => {
+														isEmailModalOpen = true;
+														selectedEmailAddresses = selectedSubcontractors.map((sub) => sub.email);
+													}}
+													class="email-selected"
+													disabled={!selectedSubcontractors.length}
+													><MdIcon>email</MdIcon>Email Selected</button
+												>
+												<button
+													on:click={() => {
+														isCallModalOpen = true;
+														selectedCallNumbers = selectedSubcontractors.map((sub) => ({
+															company_name: sub.company_name,
+															number: sub.phone
+														}));
+													}}
+													class="email-selected"
+													disabled={!selectedSubcontractors.length}
+													><MdIcon>email</MdIcon>Call Selected</button
+												>
+											</div>
+										</div>
+									{/if}
+								</div>
 							</div>
 						{:else}
-							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-								<div class="sender">
-									{msg.sender}
+							<div class="message-container user">
+								<div class="avatar">
+									<MdIcon>person</MdIcon>
 								</div>
-								<div class="text">
-									{msg.text}
+
+								<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+									<div class="sender">
+										{msg.sender}
+									</div>
+									<div class="text">
+										{msg.text}
+									</div>
 								</div>
 							</div>
 						{/if}
 					{/each}
-
-					{#if showMessageIcon}
-						<div class="typing">
-							<span></span>
-							<span></span>
-							<span></span>
-						</div>
-					{/if}
 				</div>
 			</div>
 
+			{#if selectedSubcontractors.length && showBidPackagePrompt}
+				<div class="add-to-package-prompt">
+					<button class="add-to-bid-package" on:click={() => (isBidPackageModalOpen = true)}>
+						Would you like to add these firms to a bid package?</button
+					><button on:click={() => (showBidPackagePrompt = false)}><MdIcon>close</MdIcon></button>
+				</div>
+			{/if}
 			<div class="input">
-				<input
-					type="text"
-					placeholder="Type your message here..."
-					bind:value={message}
-					on:keypress={handleKeypress}
-				/>
-				<button><MdIcon>mic</MdIcon></button>
-				<button><MdIcon>send</MdIcon></button>
+				{#if chatLoading}
+					<span class="loader"></span>
+				{:else}
+					<input
+						type="text"
+						placeholder="Type your message here..."
+						bind:value={message}
+						on:keypress={handleKeypress}
+					/>
+					<button><MdIcon>mic</MdIcon></button>
+					<button><MdIcon>send</MdIcon></button>
+				{/if}
 			</div>
 
 			<div class="action-buttons">
@@ -470,19 +558,19 @@
 			</div>
 			<div class="input-container">
 				<p class="label">From</p>
-				<input type="text" placeholder="Enter subject" />
+				<input type="text" placeholder="Enter sender email" bind:value={senderEmail} />
 			</div>
 			<div class="input-container">
 				<p class="label">Subject</p>
-				<input type="text" placeholder="Enter subject" />
+				<input type="text" placeholder="Enter subject" bind:value={emailSubject} />
 			</div>
 			<div class="input-container">
 				<p class="label">Message</p>
-				<textarea placeholder="Enter your message"></textarea>
+				<textarea placeholder="Enter your message" bind:value={emailBody}></textarea>
 			</div>
 			<div class="action-container">
 				<button on:click={() => (isEmailModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
-				<button class="send"><MdIcon>send</MdIcon>Send Email</button>
+				<button class="send" on:click={sendEmail}><MdIcon>send</MdIcon>Send Email</button>
 			</div>
 		</div>
 	</div>
@@ -507,6 +595,53 @@
 				<button on:click={() => (isCallModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
 				<button class="send"><MdIcon>phone_in_talk</MdIcon>Call All</button>
 			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isBidPackageModalOpen}
+	<div class="bid-package-modal">
+		<div class="bid-package-info">
+			{#if bidPackageStep === 'add'}
+				<h2>Bid Package</h2>
+				<p>Would you like to add these firms to a bid package?</p>
+				{#each selectedSubcontractors as sub}
+					<div class="bid-package-firm-container">
+						<input type="checkbox" checked />
+						<h3>{sub.company_name}</h3>
+					</div>
+				{/each}
+				<div class="action-container">
+					<button
+						on:click={() => {
+							isBidPackageModalOpen = false;
+							showBidPackagePrompt = false;
+							bidPackageStep = 'add';
+							selectedBidPackage = null;
+						}}><MdIcon>close</MdIcon>Cancel</button
+					>
+
+					<button on:click={() => (bidPackageStep = 'find')} class="send">Next</button>
+				</div>
+			{:else if bidPackageStep === 'find'}
+				<input type="text" bind:value={bidPackageSearch} placeholder="Search for a bid package" />
+				{#each bidPackages.filter((bp) => bp.bid_package
+						.toLowerCase()
+						.includes(bidPackageSearch.toLowerCase())) as bp}
+					<button
+						class="bid-package-list"
+						on:click={() => (selectedBidPackage = bp)}
+						class:selected={bp === selectedBidPackage}
+					>
+						<h3>{bp.bid_package}</h3>
+						<p class="project">{bp.project}</p>
+					</button>
+				{/each}
+				<div class="action-container">
+					<button on:click={() => (bidPackageStep = 'add')}>Previous</button>
+					<button class="send"><MdIcon>add</MdIcon>Add to Bid Package</button>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -660,9 +795,11 @@
 				max-width: 500px;
 				display: flex;
 				flex-direction: column;
+				align-items: center;
 				gap: 0.8rem;
 				margin-bottom: 1.2rem;
 				margin: auto;
+				justify-content: center;
 			}
 
 			h2 {
@@ -710,6 +847,7 @@
 				text-align: center;
 				gap: 0.8rem;
 				margin-bottom: 1.2rem;
+				align-items: center;
 			}
 			.action-buttons {
 				align-items: center;
@@ -759,6 +897,27 @@
 			overflow: clip;
 
 			width: 100%;
+			.message-container {
+				display: flex;
+				justify-content: end;
+				gap: 8px;
+			}
+
+			.message-container.user {
+				flex-direction: row-reverse;
+			}
+			.message-container.bot {
+				.avatar {
+					background-color: #0e182c;
+				}
+			}
+
+			.avatar {
+				background-color: hsl(207, 83%, 53%);
+				height: min-content;
+				color: white;
+				border-radius: 50%;
+			}
 			.message {
 				padding: 16px;
 				background-color: #f9fafb;
@@ -1041,6 +1200,87 @@
 		}
 	}
 
+	.bid-package-modal {
+		position: fixed;
+		display: flex;
+		inset: 0;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		z-index: 2;
+		background-color: rgba(0, 0, 0, 0.825);
+		h2 {
+			color: #0e182c;
+			font-size: 32px;
+			font-weight: 500;
+		}
+		.bid-package-info {
+			display: flex;
+			width: 100%;
+			max-width: 800px;
+			background-color: white;
+			z-index: 12;
+			flex-direction: column;
+			padding: 24px;
+			border-radius: 0.4rem;
+			gap: 16px;
+
+			p {
+				font-size: 16px;
+				font-weight: 500;
+				color: #0e182c;
+			}
+		}
+		.action-container {
+			display: flex;
+			gap: 8px;
+			justify-content: end;
+		}
+		button {
+			padding: 4px 12px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 0.4rem;
+			border: 2px solid #e5e7eb;
+		}
+
+		.bid-package-firm-container {
+			display: flex;
+			align-self: start;
+			border: 1px solid hsl(0, 0%, 85%);
+			padding: 8px;
+			border-radius: 0.4rem;
+			gap: 8px;
+			width: 100%;
+			/* margin-bottom: 8px; */
+		}
+
+		.bid-package-list {
+			width: 100%;
+			text-align: start;
+			display: flex;
+			flex-direction: column;
+			justify-content: start;
+			align-items: start;
+
+			h3 {
+				font-weight: 600;
+			}
+			p {
+				font-weight: 400;
+			}
+		}
+
+		.selected {
+			background-color: hsl(207, 83%, 53%);
+			color: white;
+
+			.project {
+				color: white;
+			}
+		}
+	}
 	.call-modal {
 		position: fixed;
 		display: flex;
@@ -1116,6 +1356,19 @@
 		}
 	}
 
+	.add-to-package-prompt {
+		display: flex;
+		gap: 4px;
+		color: hsl(207, 83%, 53%);
+		width: 100%;
+		align-items: center;
+		margin-bottom: 20px;
+	}
+	.add-to-bid-package {
+		padding: 8px 8px;
+		border: 1px solid hsl(207, 83%, 53%);
+		border-radius: 0.4rem;
+	}
 	footer {
 		min-height: 300px;
 		background-color: #0e182c;
@@ -1126,5 +1379,83 @@
 		justify-content: center;
 		align-items: center;
 		gap: 8px;
+	}
+	.loader {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		display: block;
+		margin: 12px auto;
+		position: relative;
+		color: hsl(207, 83%, 53%);
+		left: -100px;
+		box-sizing: border-box;
+		animation: shadowRolling 4s linear infinite;
+	}
+
+	@keyframes shadowRolling {
+		0% {
+			box-shadow:
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0);
+		}
+		12% {
+			box-shadow:
+				100px 0 hsl(207, 83%, 53%),
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0);
+		}
+		25% {
+			box-shadow:
+				110px 0 hsl(207, 83%, 53%),
+				100px 0 hsl(207, 83%, 53%),
+				0px 0 rgba(255, 255, 255, 0),
+				0px 0 rgba(255, 255, 255, 0);
+		}
+		36% {
+			box-shadow:
+				120px 0 hsl(207, 83%, 53%),
+				110px 0 hsl(207, 83%, 53%),
+				100px 0 hsl(207, 83%, 53%),
+				0px 0 rgba(255, 255, 255, 0);
+		}
+		50% {
+			box-shadow:
+				130px 0 hsl(207, 83%, 53%),
+				120px 0 hsl(207, 83%, 53%),
+				110px 0 hsl(207, 83%, 53%),
+				100px 0 hsl(207, 83%, 53%);
+		}
+		62% {
+			box-shadow:
+				200px 0 rgba(255, 255, 255, 0),
+				130px 0 hsl(207, 83%, 53%),
+				120px 0 hsl(207, 83%, 53%),
+				110px 0 hsl(207, 83%, 53%);
+		}
+		75% {
+			box-shadow:
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0),
+				130px 0 hsl(207, 83%, 53%),
+				120px 0 hsl(207, 83%, 53%);
+		}
+		87% {
+			box-shadow:
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0),
+				130px 0 hsl(207, 83%, 53%);
+		}
+		100% {
+			box-shadow:
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0),
+				200px 0 rgba(255, 255, 255, 0);
+		}
 	}
 </style>
