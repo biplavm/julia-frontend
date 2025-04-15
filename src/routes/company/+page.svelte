@@ -37,6 +37,7 @@
 <script lang="ts">
 	import MdIcon from '$lib/components/MdIcon.svelte';
 	import { onMount } from 'svelte';
+	import toast, { Toaster } from 'svelte-french-toast';
 
 	export let data;
 
@@ -55,7 +56,7 @@
 	let selectedCallNumbers: Record<string, string>[] = [];
 	let chatLoading = false;
 	let showBidPackagePrompt = false;
-	let isBidPackageModalOpen = true;
+	let isBidPackageModalOpen = false;
 	let bidPackageStep: 'add' | 'find' = 'find';
 	let bidPackageSearch = '';
 	let selectedBidPackage: Record<string, string> | null = null;
@@ -63,6 +64,31 @@
 	let emailSubject = '';
 	let emailBody = '';
 
+	async function makePhoneCall() {
+		try {
+			const response = await fetch('http://24.144.88.94/make-call', {
+				method: 'POST',
+				headers: {
+					accept: 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					to: '+923369009019',
+					message: 'hello there!',
+					callback_url: 'string'
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(`Error: ${response.status}`);
+			}
+
+			toast.success('Phone call initiated successfully!');
+			isCallModalOpen = false;
+		} catch (error) {
+			toast.error('Error sending email');
+		}
+	}
 	async function sendEmail() {
 		try {
 			const response = await fetch('http://24.144.88.94/send-email', {
@@ -72,7 +98,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					to: 'biplav@toughleaf.com',
+					to: ['danish@toughleaf.com', 'biplav@toughleaf.com'],
 					subject: emailSubject,
 					body: emailBody
 				})
@@ -82,13 +108,10 @@
 				throw new Error(`Error: ${response.status}`);
 			}
 
-			console.log(response);
-
-			alert('Email sent successfully!');
+			toast.success('Email(s) sent successfully!');
 			isEmailModalOpen = false;
 		} catch (error) {
-			console.error('Error sending email:', error);
-			alert('Failed to send email. Please try again.');
+			toast.error('Error sending email');
 		}
 	}
 
@@ -586,14 +609,14 @@
 						<p class="company-name">{number.company_name}</p>
 						<p class="number">{number.number}</p>
 					</div>
-					<button on:click={() => window.open(`tel:${number}`)}>
+					<button on:click={() => makePhoneCall()}>
 						<MdIcon>phone_in_talk</MdIcon>
 					</button>
 				</div>
 			{/each}
 			<div class="action-container">
 				<button on:click={() => (isCallModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
-				<button class="send"><MdIcon>phone_in_talk</MdIcon>Call</button>
+				<!-- <button class="send" ><MdIcon>phone_in_talk</MdIcon>Call</button> -->
 			</div>
 		</div>
 	</div>
@@ -639,12 +662,23 @@
 				{/each}
 				<div class="action-container">
 					<button on:click={() => (bidPackageStep = 'add')}>Previous</button>
-					<button class="send"><MdIcon>add</MdIcon>Add to Bid Package</button>
+					<button
+						class="send"
+						on:click={() => {
+							toast.success(
+								`Successfully added ${selectedSubcontractors.length} packages to ${selectedBidPackage?.bid_package}`
+							);
+							selectedBidPackage = null;
+							isBidPackageModalOpen = false;
+						}}><MdIcon>add</MdIcon>Add to Bid Package</button
+					>
 				</div>
 			{/if}
 		</div>
 	</div>
 {/if}
+
+<Toaster />
 
 <style>
 	.main {
