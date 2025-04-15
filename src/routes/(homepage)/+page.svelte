@@ -4,11 +4,11 @@
 
 	let query = '';
 
-	function handleSubmit() {
+	const handleSubmit = async () => {
 		if (query.trim()) {
-			goto(`/company?query=${encodeURIComponent(query)}`);
+			return goto(`/company?query=${encodeURIComponent(query)}`);
 		}
-	}
+	};
 </script>
 
 <div class="container">
@@ -23,7 +23,7 @@
 		</p>
 	</div>
 
-	<form on:submit|preventDefault={() => handleSubmit()} class="input-container">
+	<form class="input-container" on:submit|preventDefault={handleSubmit}>
 		<input type="text" bind:value={query} placeholder="Ask me anything about subcontractors..." />
 		<button type="submit">
 			<MdIcon>send</MdIcon>

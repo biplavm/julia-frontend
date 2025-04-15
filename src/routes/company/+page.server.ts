@@ -1,9 +1,7 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = (async ({ url }) => {
-	const searchQuery = url.searchParams.get('query') || '';
-
-	console.log('searchQuery', searchQuery);
+export const load = (async ({ url }) => {
+	const searchQuery = (await url.searchParams.get('query')) || '';
 
 	return {
 		searchQuery

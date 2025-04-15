@@ -98,7 +98,12 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					to: ['danish@toughleaf.com', 'biplav@toughleaf.com'],
+					to: [
+						'danish@toughleaf.com',
+						'biplav@toughleaf.com',
+						'scott@toughleaf.com',
+						'mac@toughleaf.com'
+					],
 					subject: emailSubject,
 					body: emailBody
 				})
