@@ -29,17 +29,35 @@
 <script lang="ts">
 	import MdIcon from '$lib/components/MdIcon.svelte';
 
+	async function fetchSubcontractors(query: string): Promise<Text | null> {
+		try {
+			const response = await fetch('http://24.144.88.94/find-subcontractors', {
+				method: 'POST',
+				headers: {
+					accept: 'application/json',
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					text: query,
+					max_tokens: 150
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(`Error: ${response.status}`);
+			}
+
+			const data: Text = await response.json();
+			return data; // Return the response data
+		} catch (error) {
+			console.error('Error fetching subcontractors:', error);
+			return null; // Return null in case of an error
+		}
+	}
+
 	let isChatbotOpen = true;
 	let chatbotSize: 'small' | 'large' = 'small';
-
-	function toggleChatbot() {
-		isChatbotOpen = !isChatbotOpen;
-	}
-
-	function toggleChatbotSize() {
-		chatbotSize = chatbotSize === 'small' ? 'large' : 'small';
-	}
-
+	let selectedSubcontractors: Subcontractor[] = [];
 	let message = '';
 	let chatLog: ChatLog[] = [
 		{
@@ -144,9 +162,24 @@
 		}
 	];
 
-	function getBotResponse(input: string) {
-		// Replace this with your real logic or backend call
-		return `You said: "${input}"`;
+	let chatHistory = [];
+	let isCompanyModalOpen = true;
+	let selectedCompany: Subcontractor | null = null;
+
+	function toggleChatbot() {
+		isChatbotOpen = !isChatbotOpen;
+	}
+
+	function toggleChatbotSize() {
+		chatbotSize = chatbotSize === 'small' ? 'large' : 'small';
+	}
+
+	function selectSubcontractor(sub: Subcontractor) {
+		if (selectedSubcontractors.includes(sub)) {
+			selectedSubcontractors = selectedSubcontractors.filter((s) => s !== sub);
+		} else {
+			selectedSubcontractors = [...selectedSubcontractors, sub];
+		}
 	}
 
 	function handleKeypress(e: KeyboardEvent) {
@@ -156,25 +189,30 @@
 	}
 	let showMessageIcon = false;
 
-	function sendMessage() {
+	const sendMessage = async () => {
 		if (!message.trim()) return;
 
 		// Push user message
-		chatLog = [...chatLog, { sender: 'user', text: message }];
+		chatHistory = [...chatHistory, { sender: 'user', text: message }];
 
-		// Simulate bot response
-		const botResponse = getBotResponse(message);
+		message = '';
+		const botResponse = await fetchSubcontractors(message);
 
 		// Show message icon
 		showMessageIcon = true;
+		// Clear input
 		setTimeout(() => {
-			chatLog = [...chatLog, { sender: 'Julia', text: botResponse }];
+			if (botResponse) {
+				chatHistory = [...chatHistory, { sender: 'Julia', text: botResponse }];
+			} else {
+				chatHistory = [
+					...chatHistory,
+					{ sender: 'Julia', text: 'Sorry, I could not fetch the data.' }
+				];
+			}
 			showMessageIcon = false;
 		}, 2000);
-
-		// Clear input
-		message = '';
-	}
+	};
 </script>
 
 <div class="main">
@@ -313,6 +351,11 @@
 	</div>
 </div>
 
+<footer>
+	<p>© 2023 Tough Leaf. All rights reserved.</p>
+	<p>Terms of Service | Privacy Policy</p>
+</footer>
+
 {#if !isChatbotOpen}
 	<div class="chatbubble">
 		<button on:click={toggleChatbot}>
@@ -339,28 +382,45 @@
 				</div>
 
 				<div class="chatlog">
-					{#each chatLog as msg}
+					{#each chatHistory as msg}
 						{#if msg.sender.toLowerCase() === 'julia'}
 							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
 								<div class="sender">
 									{msg.sender}
 								</div>
-								<p>Here are 4 certified electrical firms in Houston</p>
-								<div class="firm-list">
-									{#each msg.text.subcontractors as sub}
-										<div class="firm">
-											<input type="checkbox" />
-											<h3>{sub.company_name}</h3>
-											<div class="actions">
-												<button>
-													<MdIcon>visibility</MdIcon>
-												</button>
-												<button><MdIcon>mail</MdIcon></button>
-												<button><MdIcon>call</MdIcon></button>
+								{#if msg.text.matches.length === 0}
+									<p>Sorry, I couldn't find any matches for your request.</p>
+								{:else}
+									{@const subcontractors = msg.text.matches}
+									<p>Here are {msg.text.matches.length} certified electrical firms in Houston</p>
+									<div class="firm-list">
+										{#each subcontractors as sub}
+											<div class="firm">
+												<input
+													type="checkbox"
+													checked={selectedSubcontractors.includes(sub)}
+													on:click={() => selectSubcontractor(sub)}
+												/>
+												<h3>{sub.company_name}</h3>
+												<div class="actions">
+													<button
+														on:click={() => {
+															selectedCompany = sub;
+															isCompanyModalOpen = true;
+														}}
+													>
+														<MdIcon>visibility</MdIcon>
+													</button>
+													<button><MdIcon>mail</MdIcon></button>
+													<button><MdIcon>call</MdIcon></button>
+												</div>
 											</div>
-										</div>
-									{/each}
-								</div>
+										{/each}
+										<button class="email-selected" disabled={!selectedSubcontractors.length}
+											><MdIcon>email</MdIcon>Email Selected</button
+										>
+									</div>
+								{/if}
 							</div>
 						{:else}
 							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
@@ -373,6 +433,52 @@
 							</div>
 						{/if}
 					{/each}
+					<!-- {#each chatLog as msg}
+						{#if msg.sender.toLowerCase() === 'julia'}
+							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+								<div class="sender">
+									{msg.sender}
+								</div>
+								<p>Here are 4 certified electrical firms in Houston</p>
+								<div class="firm-list">
+									{#each msg.text.subcontractors as sub}
+										<div class="firm">
+											<input
+												type="checkbox"
+												checked={selectedSubcontractors.includes(sub)}
+												on:click={() => selectSubcontractor(sub)}
+											/>
+											<h3>{sub.company_name}</h3>
+											<div class="actions">
+												<button
+													on:click={() => {
+														selectedCompany = sub;
+														isCompanyModalOpen = true;
+													}}
+												>
+													<MdIcon>visibility</MdIcon>
+												</button>
+												<button><MdIcon>mail</MdIcon></button>
+												<button><MdIcon>call</MdIcon></button>
+											</div>
+										</div>
+									{/each}
+									<button class="email-selected" disabled={!selectedSubcontractors.length}
+										><MdIcon>email</MdIcon>Email Selected</button
+									>
+								</div>
+							</div>
+						{:else}
+							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
+								<div class="sender">
+									{msg.sender}
+								</div>
+								<div class="text">
+									{msg.text}
+								</div>
+							</div>
+						{/if}
+					{/each} -->
 					{#if showMessageIcon}
 						<div class="typing">
 							<span></span>
@@ -402,12 +508,82 @@
 	</div>
 {/if}
 
+{#if isCompanyModalOpen && selectedCompany}
+	<div class="company-modal">
+		<div class="company-info">
+			<h2>{selectedCompany.company_name}</h2>
+			<div class="subcontractor-info">
+				<div class="info-container">
+					<p class="label">Primary Contact Name</p>
+					<p class="info">{selectedCompany.contact}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Email</p>
+					<p class="info">{selectedCompany.email}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Phone</p>
+					<p class="info">{selectedCompany.phone}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Location</p>
+					<p class="info">{selectedCompany.location.address}, {selectedCompany.location.borough}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Capabilities</p>
+					<div class="capability-list">
+						{#each selectedCompany.capabilities as capability}
+							<p class="info capability">{capability}</p>
+						{/each}
+					</div>
+				</div>
+				<div class="info-container">
+					<p class="label">Years in Business</p>
+					<p class="info">{selectedCompany.yearsInBusiness}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Certifications</p>
+					<div class="capability-list">
+						{#each selectedCompany.certifications as certification}
+							<p class="info capability">{certification}</p>
+						{/each}
+					</div>
+				</div>
+				<div class="info-container">
+					<p class="label">Employee Count</p>
+					<p class="info">{selectedCompany.employeeCount}</p>
+				</div>
+				<div class="info-container">
+					<p class="label">Project Capacity</p>
+					<p class="info">{selectedCompany.projectCapacity}</p>
+				</div>
+			</div>
+			<div class="action-container">
+				<button on:click={() => (isCompanyModalOpen = false)}><MdIcon>close</MdIcon>Close</button>
+				{#if selectedSubcontractors.includes(selectedCompany)}
+					<button
+						class="delete"
+						disabled={!selectedSubcontractors.includes(selectedCompany)}
+						on:click={() => {
+							selectedSubcontractors = selectedSubcontractors.filter(
+								(sub) => sub.id !== selectedCompany?.id
+							);
+							isCompanyModalOpen = false;
+						}}><MdIcon>delete</MdIcon>Remove</button
+					>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.main {
 		background-color: #f4f5f6;
 		gap: 40px;
 		height: 100%;
 		min-height: 100vh;
+		padding-bottom: 200px;
 	}
 	.container {
 		display: grid;
@@ -580,7 +756,6 @@
 
 		.small {
 			box-shadow: -1px 2px 28px 5px rgba(0, 0, 0, 0.25);
-
 			background-color: white;
 			position: absolute;
 			border-radius: 0.8rem;
@@ -592,6 +767,7 @@
 			display: flex;
 			justify-content: space-between;
 			flex-direction: column;
+			padding-top: 40px;
 			.chatbot-info {
 				max-width: 500px;
 				display: flex;
@@ -602,13 +778,16 @@
 				margin-bottom: 1.2rem;
 			}
 			.action-buttons {
-				display: flex;
 				align-items: center;
-				justify-content: center;
+				display: flex;
+				justify-content: end;
+				background-color: white;
 				gap: 8px;
 				position: absolute;
-				right: 1rem;
+				left: 0rem;
+				right: 0rem;
 				top: 1rem;
+				padding-right: 1rem;
 				.minimize {
 					margin-bottom: 8px;
 				}
@@ -693,6 +872,22 @@
 					gap: 8px;
 				}
 			}
+
+			.email-selected {
+				display: flex;
+				align-items: center;
+				background-color: #0e182c;
+				color: white;
+				padding: 8px 12px;
+				width: fit-content;
+				border-radius: 0.4rem;
+				margin-top: 8px;
+			}
+
+			.email-selected:disabled {
+				background-color: gray;
+				color: white;
+			}
 		}
 	}
 
@@ -703,8 +898,14 @@
 		background-color: hsl(207, 83%, 53%);
 		color: white;
 		border-radius: 50%;
+		transition: all 0.2s ease;
+		box-shadow: -1px 2px 28px 5px rgba(0, 0, 0, 0.05);
 	}
 
+	.chatbubble:hover {
+		box-shadow: -1px 2px 28px 5px rgba(0, 0, 0, 0.25);
+		rotate: 15deg;
+	}
 	.message-icon {
 		color: hsl(120, 70%, 40%);
 		background-color: white;
@@ -750,5 +951,99 @@
 		100% {
 			opacity: 0.1;
 		}
+	}
+
+	.company-modal {
+		position: fixed;
+		display: flex;
+		inset: 0;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		z-index: 2;
+		background-color: rgba(0, 0, 0, 0.825);
+
+		.company-info {
+			display: flex;
+			max-width: 1200px;
+			background-color: white;
+			z-index: 12;
+			flex-direction: column;
+			padding: 24px;
+			border-radius: 0.8rem;
+			gap: 16px;
+
+			.subcontractor-info {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 24px 64px;
+			}
+			h2 {
+				font-size: 32px;
+				font-weight: 600;
+			}
+
+			.info-container {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+			}
+			.label {
+				opacity: 0.8;
+				font-weight: 300;
+			}
+
+			.info {
+				font-weight: 500;
+			}
+
+			.capability-list {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				.capability {
+					background-color: #0e182c;
+					color: white;
+					padding: 4px 12px;
+					border-radius: 0.8rem;
+					font-size: 14px;
+				}
+			}
+		}
+
+		.action-container {
+			display: flex;
+			gap: 8px;
+			justify-content: end;
+		}
+		button {
+			padding: 4px 12px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 0.4rem;
+			border: 2px solid #e5e7eb;
+		}
+
+		.delete {
+			color: white;
+			background-color: #d20700;
+		}
+		.delete:disabled {
+			background-color: gray;
+			color: white;
+		}
+	}
+
+	footer {
+		min-height: 300px;
+		background-color: #0e182c;
+		color: white;
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 8px;
 	}
 </style>
