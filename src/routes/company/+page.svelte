@@ -59,7 +59,7 @@
 	let isCompanyModalOpen = true;
 	let selectedCompany: Subcontractor | null = null;
 	let isEmailModalOpen = false;
-	let isCallModalOpen = true;
+	let isCallModalOpen = false;
 	let selectedCallNumbers: Record<string, string>[] = [];
 
 	function toggleChatbot() {
