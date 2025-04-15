@@ -72,7 +72,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					to: 'danish@toughleaf.com',
+					to: 'biplav@toughleaf.com',
 					subject: emailSubject,
 					body: emailBody
 				})
@@ -412,7 +412,7 @@
 													disabled={!selectedSubcontractors.length}
 													><MdIcon>email</MdIcon>Email Selected</button
 												>
-												<button
+												<!-- <button
 													on:click={() => {
 														isCallModalOpen = true;
 														selectedCallNumbers = selectedSubcontractors.map((sub) => ({
@@ -423,7 +423,7 @@
 													class="email-selected"
 													disabled={!selectedSubcontractors.length}
 													><MdIcon>email</MdIcon>Call Selected</button
-												>
+												> -->
 											</div>
 										</div>
 									{/if}
@@ -593,7 +593,7 @@
 			{/each}
 			<div class="action-container">
 				<button on:click={() => (isCallModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
-				<button class="send"><MdIcon>phone_in_talk</MdIcon>Call All</button>
+				<button class="send"><MdIcon>phone_in_talk</MdIcon>Call</button>
 			</div>
 		</div>
 	</div>
