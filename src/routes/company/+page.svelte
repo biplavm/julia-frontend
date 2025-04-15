@@ -1,9 +1,4 @@
 <script lang="ts" context="module">
-	interface ChatLog {
-		sender: string;
-		text: string | Text;
-	}
-
 	interface Text {
 		subcontractors: Subcontractor[];
 	}
@@ -59,112 +54,13 @@
 	let chatbotSize: 'small' | 'large' = 'small';
 	let selectedSubcontractors: Subcontractor[] = [];
 	let message = '';
-	let chatLog: ChatLog[] = [
-		{
-			sender: 'user',
-			text: 'Hello, I need help finding subcontractors for my project.'
-		},
-		{
-			sender: 'Julia',
-			text: {
-				subcontractors: [
-					{
-						id: 'SC001',
-						phone: '(212) 555-1234',
-						email: 'info@metroconstruction.com',
-						contact: 'John Chui',
-						company_name: 'Metro Construction Solutions',
-						location: {
-							borough: 'Manhattan',
-							address: '123 Broadway, New York, NY 10007'
-						},
-						capabilities: ['General Construction', 'Concrete Work', 'Steel Fabrication'],
-						certifications: ['MBE', 'SBE'],
-						yearsInBusiness: 15,
-						employeeCount: 150,
-						projectCapacity: '$5M-$20M'
-					},
-					{
-						id: 'SC002',
-						phone: '(718) 555-5678',
-						email: 'info@brookylenetwork.com',
-						contact: 'Jane Smith',
-						company_name: 'Brooklyn Electrical Experts',
-						location: {
-							borough: 'Brooklyn',
-							address: '456 Atlantic Ave, Brooklyn, NY 11217'
-						},
-						capabilities: [
-							'Electrical Systems',
-							'Smart Building Integration',
-							'Solar Installation'
-						],
-						certifications: ['WBE', 'LEED'],
-						yearsInBusiness: 8,
-						employeeCount: 75,
-						projectCapacity: '$1M-$10M'
-					},
-					{
-						id: 'SC003',
-						phone: '(718) 555-5678',
-						email: 'info@queensplumbing.com',
-						contact: 'John Smith',
-						company_name: 'Queens Plumbing & HVAC',
-						location: {
-							borough: 'Queens',
-							address: '789 Northern Blvd, Queens, NY 11101'
-						},
-						capabilities: ['Plumbing Systems', 'HVAC Installation', 'Building Automation'],
-						certifications: ['DBE'],
-						yearsInBusiness: 12,
-						employeeCount: 90,
-						projectCapacity: '$2M-$15M'
-					},
-					{
-						id: 'SC004',
-						phone: '(718) 555-5678',
-						email: 'info@bronxinterior.com',
-						contact: 'John Doe',
-						company_name: 'Bronx Interior Specialists',
-						location: {
-							borough: 'Bronx',
-							address: '321 East Fordham Rd, Bronx, NY 10458'
-						},
-						capabilities: [
-							'Interior Finishing',
-							'Drywall Installation',
-							'Custom Millwork',
-							'Painting'
-						],
-						certifications: ['SBE'],
-						yearsInBusiness: 6,
-						employeeCount: 45,
-						projectCapacity: '$500K-$5M'
-					},
-					{
-						id: 'SC005',
-						phone: '(718) 555-5678',
-						email: 'info@statenislandexcavation.com',
-						contact: 'John Doe',
-						company_name: 'Staten Island Excavation',
-						location: {
-							borough: 'Staten Island',
-							address: '987 Victory Blvd, Staten Island, NY 10314'
-						},
-						capabilities: ['Site Preparation', 'Excavation', 'Foundation Work', 'Steel Molding'],
-						certifications: ['DBE', 'ISO 14001'],
-						yearsInBusiness: 20,
-						employeeCount: 60,
-						projectCapacity: '$3M-$25M'
-					}
-				]
-			}
-		}
-	];
-
+	let selectedEmailAddresses: string[] = [];
 	let chatHistory = [];
 	let isCompanyModalOpen = true;
 	let selectedCompany: Subcontractor | null = null;
+	let isEmailModalOpen = false;
+	let isCallModalOpen = true;
+	let selectedCallNumbers: Record<string, string>[] = [];
 
 	function toggleChatbot() {
 		isChatbotOpen = !isChatbotOpen;
@@ -411,14 +307,46 @@
 													>
 														<MdIcon>visibility</MdIcon>
 													</button>
-													<button><MdIcon>mail</MdIcon></button>
-													<button><MdIcon>call</MdIcon></button>
+													<button
+														on:click={() => {
+															selectedEmailAddresses = [sub.email];
+															isEmailModalOpen = true;
+														}}><MdIcon>mail</MdIcon></button
+													>
+													<button
+														on:click={() => {
+															selectedCallNumbers = [
+																{ company_name: sub.company_name, number: sub.number }
+															];
+															isCallModalOpen = true;
+														}}><MdIcon>call</MdIcon></button
+													>
 												</div>
 											</div>
 										{/each}
-										<button class="email-selected" disabled={!selectedSubcontractors.length}
-											><MdIcon>email</MdIcon>Email Selected</button
-										>
+										<div class="call-mail-action-buttons">
+											<button
+												on:click={() => {
+													isEmailModalOpen = true;
+													selectedEmailAddresses = selectedSubcontractors.map((sub) => sub.email);
+												}}
+												class="email-selected"
+												disabled={!selectedSubcontractors.length}
+												><MdIcon>email</MdIcon>Email Selected</button
+											>
+											<button
+												on:click={() => {
+													isCallModalOpen = true;
+													selectedCallNumbers = selectedSubcontractors.map((sub) => ({
+														company_name: sub.company_name,
+														number: sub.phone
+													}));
+												}}
+												class="email-selected"
+												disabled={!selectedSubcontractors.length}
+												><MdIcon>email</MdIcon>Call Selected</button
+											>
+										</div>
 									</div>
 								{/if}
 							</div>
@@ -433,52 +361,7 @@
 							</div>
 						{/if}
 					{/each}
-					<!-- {#each chatLog as msg}
-						{#if msg.sender.toLowerCase() === 'julia'}
-							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-								<div class="sender">
-									{msg.sender}
-								</div>
-								<p>Here are 4 certified electrical firms in Houston</p>
-								<div class="firm-list">
-									{#each msg.text.subcontractors as sub}
-										<div class="firm">
-											<input
-												type="checkbox"
-												checked={selectedSubcontractors.includes(sub)}
-												on:click={() => selectSubcontractor(sub)}
-											/>
-											<h3>{sub.company_name}</h3>
-											<div class="actions">
-												<button
-													on:click={() => {
-														selectedCompany = sub;
-														isCompanyModalOpen = true;
-													}}
-												>
-													<MdIcon>visibility</MdIcon>
-												</button>
-												<button><MdIcon>mail</MdIcon></button>
-												<button><MdIcon>call</MdIcon></button>
-											</div>
-										</div>
-									{/each}
-									<button class="email-selected" disabled={!selectedSubcontractors.length}
-										><MdIcon>email</MdIcon>Email Selected</button
-									>
-								</div>
-							</div>
-						{:else}
-							<div class="message" class:bot={msg.sender.toLowerCase() === 'julia'}>
-								<div class="sender">
-									{msg.sender}
-								</div>
-								<div class="text">
-									{msg.text}
-								</div>
-							</div>
-						{/if}
-					{/each} -->
+
 					{#if showMessageIcon}
 						<div class="typing">
 							<span></span>
@@ -572,6 +455,57 @@
 						}}><MdIcon>delete</MdIcon>Remove</button
 					>
 				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isEmailModalOpen}
+	<div class="email-modal">
+		<div class="email-info">
+			<h2>Send Email</h2>
+			<div class="input-container">
+				<p class="label">Recipient(s)</p>
+				<input type="text" value={selectedEmailAddresses.join(', ')} />
+			</div>
+			<div class="input-container">
+				<p class="label">From</p>
+				<input type="text" placeholder="Enter subject" />
+			</div>
+			<div class="input-container">
+				<p class="label">Subject</p>
+				<input type="text" placeholder="Enter subject" />
+			</div>
+			<div class="input-container">
+				<p class="label">Message</p>
+				<textarea placeholder="Enter your message"></textarea>
+			</div>
+			<div class="action-container">
+				<button on:click={() => (isEmailModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
+				<button class="send"><MdIcon>send</MdIcon>Send Email</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isCallModalOpen}
+	<div class="call-modal">
+		<div class="call-info">
+			<h2>Make Calls</h2>
+			{#each selectedCallNumbers as number}
+				<div class="call-number">
+					<div class="info">
+						<p class="company-name">{number.company_name}</p>
+						<p class="number">{number.number}</p>
+					</div>
+					<button on:click={() => window.open(`tel:${number}`)}>
+						<MdIcon>phone_in_talk</MdIcon>
+					</button>
+				</div>
+			{/each}
+			<div class="action-container">
+				<button on:click={() => (isCallModalOpen = false)}><MdIcon>close</MdIcon>Cancel</button>
+				<button class="send"><MdIcon>phone_in_talk</MdIcon>Call All</button>
 			</div>
 		</div>
 	</div>
@@ -839,6 +773,7 @@
 			.sender {
 				color: hsl(207, 83%, 53%);
 				font-weight: 600;
+				text-transform: capitalize;
 			}
 
 			.bot {
@@ -865,6 +800,7 @@
 
 				h3 {
 					flex-grow: 1;
+					text-align: start;
 				}
 
 				.actions {
@@ -873,20 +809,25 @@
 				}
 			}
 
-			.email-selected {
+			.call-mail-action-buttons {
 				display: flex;
-				align-items: center;
-				background-color: #0e182c;
-				color: white;
-				padding: 8px 12px;
-				width: fit-content;
-				border-radius: 0.4rem;
-				margin-top: 8px;
-			}
+				gap: 8px;
+				justify-content: start;
+				.email-selected {
+					display: flex;
+					align-items: center;
+					background-color: #0e182c;
+					color: white;
+					padding: 4px 12px;
+					width: fit-content;
+					border-radius: 0.4rem;
+					margin-top: 8px;
+				}
 
-			.email-selected:disabled {
-				background-color: gray;
-				color: white;
+				.email-selected:disabled {
+					background-color: gray;
+					color: white;
+				}
 			}
 		}
 	}
@@ -1031,6 +972,146 @@
 		}
 		.delete:disabled {
 			background-color: gray;
+			color: white;
+		}
+	}
+
+	.email-modal {
+		position: fixed;
+		display: flex;
+		inset: 0;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		z-index: 2;
+		background-color: rgba(0, 0, 0, 0.825);
+
+		h2 {
+			color: #0e182c;
+			font-size: 32px;
+			font-weight: 500;
+		}
+
+		.email-info {
+			display: flex;
+			width: 100%;
+			max-width: 800px;
+			background-color: white;
+			z-index: 12;
+			flex-direction: column;
+			padding: 24px;
+			border-radius: 0.4rem;
+			gap: 16px;
+
+			.input-container {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				input[type='text'] {
+					padding: 12px 16px;
+					border-radius: 0.4rem;
+					width: 100%;
+					border: 2px solid #e5e7eb;
+				}
+				textarea {
+					padding: 16px 24px;
+					border-radius: 0.4rem;
+					width: 100%;
+					border: 2px solid #e5e7eb;
+				}
+			}
+		}
+		.action-container {
+			display: flex;
+			gap: 8px;
+			justify-content: end;
+		}
+		button {
+			padding: 4px 12px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 0.4rem;
+			border: 2px solid #e5e7eb;
+		}
+
+		.send {
+			background-color: #0e182c;
+			color: white;
+		}
+	}
+
+	.call-modal {
+		position: fixed;
+		display: flex;
+		inset: 0;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		z-index: 2;
+		background-color: rgba(0, 0, 0, 0.825);
+		h2 {
+			color: #0e182c;
+			font-size: 32px;
+			font-weight: 500;
+		}
+		.call-info {
+			display: flex;
+			width: 100%;
+			max-width: 800px;
+			background-color: white;
+			z-index: 12;
+			flex-direction: column;
+			padding: 24px;
+			border-radius: 0.4rem;
+			gap: 16px;
+
+			.call-number {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 8px;
+				background-color: #f9fafb;
+				padding: 12px;
+				border-radius: 0.4rem;
+
+				.info {
+					display: flex;
+					flex-direction: column;
+					gap: 4px;
+
+					.company-name {
+						font-weight: 500;
+					}
+					.number {
+						font-weight: 300;
+						opacity: 0.8;
+					}
+				}
+				button {
+					border: none;
+					color: #0e182c;
+					padding: 8px 12px;
+					font-weight: 500;
+				}
+			}
+		}
+		.action-container {
+			display: flex;
+			gap: 8px;
+			justify-content: end;
+		}
+		button {
+			padding: 4px 12px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 0.4rem;
+			border: 2px solid #e5e7eb;
+		}
+
+		.send {
+			background-color: #0e182c;
 			color: white;
 		}
 	}
